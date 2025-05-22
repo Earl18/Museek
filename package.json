@@ -7,11 +7,12 @@
     "start": "node index.js"
   },
   "dependencies": {
-  "discord.js": "^14.11.0",
-  "distube": "^4.1.0",
-  "@distube/yt-dlp": "^1.1.0",
-  "@distube/ytdl-core": "^5.0.3",
-  "@discordjs/opus": "^0.7.0",
-  "dotenv": "^16.3.1"
+    "@discordjs/opus": "^0.10.0",
+    "@discordjs/voice": "^0.18.0",
+    "@distube/yt-dlp": "^1.1.0",
+    "@distube/ytdl-core": "^4.16.10",
+    "discord.js": "^14.11.0",
+    "distube": "^4.1.0",
+    "dotenv": "^16.3.1"
   }
 }
