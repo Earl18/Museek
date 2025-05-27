@@ -1,10 +1,10 @@
 # Use an official Node image
 FROM node:20-alpine
 
+RUN apt-get update && apt-get install -y ffmpeg
+
 # Set working directory
 WORKDIR /app
-
-RUN apt-get update && apt-get install -y ffmpeg
 
 # Copy files
 COPY . .
