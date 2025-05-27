@@ -6,7 +6,6 @@ const { YtDlpPlugin } = require('@distube/yt-dlp');
 const { YouTubePlugin } = require('@distube/youtube');
 const fs = require('fs');
 const config = require('./utils/config'); // Assuming you use this somewhere
-const ytdlExec = require('yt-dlp-exec');
 const PlaylistHandler = require('./utils/playlistHandler'); // Add this import
 
 if (!process.env.DISCORD_TOKEN) console.warn('⚠️ DISCORD_TOKEN is missing from .env!');
@@ -30,7 +29,7 @@ client.playlistHandler = new PlaylistHandler(client);
 // Load all commands from folders
 const commandFolders = fs.readdirSync('./commands');
 for (const folder of commandFolders) {
-  const commandFiles = fs.readdirSync(`./commands/${folder}`).filter(file => file.endsWith('.js'));
+  const commandFiles = fs.readdirSync(`./commands/${folder}`).filter(file => file.endsWith('.js');
   for (const file of commandFiles) {
     const command = require(`./commands/${folder}/${file}`);
     client.commands.set(command.name, command);
@@ -47,7 +46,7 @@ fs.readdirSync('./events').forEach(file => {
   }
 });
 
-// Enhanced DisTube configuration to bypass bot detection
+// DisTube v5 configuration with anti-bot detection
 client.distube = new DisTube(client, {
   emitNewSongOnly: true,
   emitAddSongWhenCreatingQueue: true,
@@ -61,18 +60,18 @@ client.distube = new DisTube(client, {
       },
     }),
     new YouTubePlugin({
-      cookies: [], // Add cookies if needed for region-locked content
+      // Enhanced configuration for bot detection bypass
       ytdlOptions: {
         quality: 'highestaudio',
         filter: 'audioonly',
         format: 'mp4',
-        highWaterMark: 1024 * 1024 * 10, // 10MB buffer
+        highWaterMark: 1024 * 1024 * 32, // 32MB buffer
         requestOptions: {
           headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.5',
-            'Accept-Encoding': 'gzip, deflate',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Accept-Encoding': 'gzip, deflate, br',
             'DNT': '1',
             'Connection': 'keep-alive',
             'Upgrade-Insecure-Requests': '1',
@@ -80,27 +79,39 @@ client.distube = new DisTube(client, {
             'Sec-Fetch-Mode': 'navigate',
             'Sec-Fetch-Site': 'none',
             'Sec-Fetch-User': '?1',
+            'sec-ch-ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+            'sec-ch-ua-mobile': '?0',
+            'sec-ch-ua-platform': '"Windows"'
           }
         }
       }
     }),
     new YtDlpPlugin({
-      exec: ytdlExec,
-      update: false,
-      // YT-DLP options to bypass restrictions
+      // Enhanced YT-DLP configuration for bot detection bypass
       ytdlOptions: {
-        format: 'bestaudio/best',
+        format: 'bestaudio[ext=webm]/bestaudio/best',
         'extract-flat': false,
         'no-warnings': true,
-        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+        'no-check-certificate': true,
+        'prefer-free-formats': true,
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'referer': 'https://www.youtube.com/',
         'add-header': [
-          'Accept:text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-          'Accept-Language:en-US,en;q=0.5',
-          'Accept-Encoding:gzip, deflate',
+          'Accept:text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+          'Accept-Language:en-US,en;q=0.9',
+          'Accept-Encoding:gzip, deflate, br',
           'DNT:1',
-          'Connection:keep-alive'
-        ]
+          'Connection:keep-alive',
+          'Upgrade-Insecure-Requests:1',
+          'Sec-Fetch-Dest:document',
+          'Sec-Fetch-Mode:navigate',
+          'Sec-Fetch-Site:none',
+          'Sec-Fetch-User:?1'
+        ],
+        // Additional options to avoid detection
+        'sleep-requests': 1,
+        'max-sleep-interval': 5,
+        'sleep-subtitles': 1
       }
     }),
   ],
@@ -114,6 +125,7 @@ client.distube
   .on('playSong', (queue, song) => {
     console.log(`🎶 Playing: ${song.name} - ${song.formattedDuration}`);
 
+    // Set volume to 100%
     queue.setVolume(100);
     
     // Always send playing message
@@ -126,7 +138,7 @@ client.distube
     const guildId = queue.id;
     const isSilent = client.playlistHandler.isSilentMode(guildId);
 
-    console.log(`[AddSong] isSilent for ${process.env.GUILD_ID}:`, isSilent);
+    console.log(`[AddSong] isSilent for ${guildId}:`, isSilent);
   
     // Only send message if NOT in silent mode
     if (!isSilent) {
@@ -164,20 +176,25 @@ client.distube
   .on('error', (channel, error) => {
     console.error('❌ DisTube error:', error);
     
-    // Enhanced error handling for bot detection
+    // Enhanced error handling for bot detection and other issues
     let errorMessage = '❌ An error occurred';
     
     if (error.message) {
       if (error.message.includes('Sign in to confirm') || error.message.includes('bot')) {
-        errorMessage = '❌ YouTube blocked the request. Trying alternative method...';
+        errorMessage = '❌ **YouTube Bot Detection**\n\n' +
+                     '🔧 **Possible Solutions:**\n' +
+                     '• Wait 10-15 minutes and try again\n' +
+                     '• Use a more specific search term\n' +
+                     '• Try a different song\n' +
+                     '• Use a direct YouTube link\n\n' +
+                     '💡 This is temporary and usually resolves itself.';
         
-        // Try to suggest fallback
         if (channel && typeof channel.send === 'function') {
-          channel.send(errorMessage + '\n💡 **Suggestion:** Try using a direct YouTube link or search for the song with different keywords.');
+          channel.send(errorMessage);
         }
         return;
       } else if (error.message.includes('Cannot read properties of undefined')) {
-        errorMessage = '❌ Failed to parse playlist. This format may not be supported.';
+        errorMessage = '❌ Failed to parse content. This format may not be supported.';
       } else if (error.message.includes('Unknown Playlist')) {
         errorMessage = '❌ This playlist type is not supported (possibly auto-generated or private).';
       } else if (error.message.includes('Private video')) {
@@ -187,9 +204,13 @@ client.distube
       } else if (error.message.includes('not available')) {
         errorMessage = '❌ This content is not available in your region.';
       } else if (error.message.includes('429') || error.message.includes('Too Many Requests')) {
-        errorMessage = '❌ Too many requests. Please wait a moment before trying again.';
+        errorMessage = '❌ Rate limited. Please wait a moment before trying again.';
+      } else if (error.message.includes('Video unavailable')) {
+        errorMessage = '❌ This video is unavailable or has been removed.';
+      } else if (error.message.includes('Premieres in')) {
+        errorMessage = '❌ This video is a premiere that hasn\'t started yet.';
       } else {
-        errorMessage = `❌ Error: ${error.message}`;
+        errorMessage = `❌ Playback Error: ${error.message.substring(0, 100)}${error.message.length > 100 ? '...' : ''}`;
       }
     }
     
@@ -257,7 +278,14 @@ client.on('messageCreate', async (message) => {
       } else if (error.message.includes('Connection')) {
         errorMsg = '❌ Failed to connect to voice channel. Please try again.';
       } else if (error.message.includes('Sign in to confirm') || error.message.includes('bot')) {
-        errorMsg = '❌ YouTube blocked the request. Please try:\n• Using a different search term\n• Providing a direct YouTube link\n• Waiting a few minutes before trying again';
+        errorMsg = '❌ **YouTube Bot Detection Active**\n\n' +
+                  '🔧 **Quick Fixes:**\n' +
+                  '• Try a different search term\n' +
+                  '• Use a direct YouTube link\n' +
+                  '• Wait 10-15 minutes\n' +
+                  '• Try searching for the artist name only';
+      } else if (error.message.includes('No voice connection')) {
+        errorMsg = '❌ I\'m not connected to a voice channel.';
       }
     }
     
@@ -298,6 +326,12 @@ process.on('unhandledRejection', (err) => {
     console.log('🔧 Rate limit error caught - bot continuing to run');
     return;
   }
+  
+  // Handle video unavailable errors
+  if (err.message && err.message.includes('Video unavailable')) {
+    console.log('🔧 Video unavailable error caught - bot continuing to run');
+    return;
+  }
 });
 
 process.on('uncaughtException', (err) => {
@@ -316,8 +350,8 @@ process.on('uncaughtException', (err) => {
   }
   
   // Log the error but don't exit for known issues
-  if (err.message && err.message.includes('ytpl')) {
-    console.log('🔧 YTPL error caught - bot continuing to run');
+  if (err.message && (err.message.includes('ytpl') || err.message.includes('Video unavailable'))) {
+    console.log('🔧 Known error caught - bot continuing to run');
     return;
   }
   
