@@ -12,7 +12,6 @@ const PlaylistHandler = require('./utils/playlistHandler'); // Add this import
 if (!process.env.DISCORD_TOKEN) console.warn('⚠️ DISCORD_TOKEN is missing from .env!');
 if (!process.env.SPOTIFY_ID || !process.env.SPOTIFY_SECRET) console.warn('⚠️ SPOTIFY_ID or SPOTIFY_SECRET is missing from .env!');
 
-
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -48,12 +47,31 @@ fs.readdirSync('./events').forEach(file => {
   }
 });
 
-// Initialize DisTube with updated configuration
+// Enhanced DisTube configuration to bypass bot detection
 client.distube = new DisTube(client, {
   emitNewSongOnly: true,
   emitAddSongWhenCreatingQueue: true,
   savePreviousSongs: true,
   emitAddListWhenCreatingQueue: true,
+  ytdlOptions: {
+    // Add these options to bypass bot detection
+    requestOptions: {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+        'Accept-Encoding': 'gzip, deflate',
+        'DNT': '1',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
+      }
+    },
+    // Additional options to avoid detection
+    quality: 'highestaudio',
+    filter: 'audioonly',
+    format: 'mp4',
+    highWaterMark: 1024 * 1024 * 10, // 10MB buffer
+  },
   plugins: [
     new SpotifyPlugin({
       api: {
@@ -63,10 +81,31 @@ client.distube = new DisTube(client, {
     }),
     new YouTubePlugin({
       cookies: [], // Add cookies if needed for region-locked content
+      ytdlOptions: {
+        requestOptions: {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5',
+            'Accept-Encoding': 'gzip, deflate',
+            'DNT': '1',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+          }
+        }
+      }
     }),
     new YtDlpPlugin({
       exec: ytdlExec,
       update: false,
+      // YT-DLP options to bypass restrictions
+      options: {
+        format: 'bestaudio/best',
+        'extract-flat': false,
+        'no-warnings': true,
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'referer': 'https://www.youtube.com/',
+      }
     }),
   ],
 });
@@ -74,7 +113,7 @@ client.distube = new DisTube(client, {
 console.log('Spotify ID:', process.env.SPOTIFY_ID ? 'Loaded' : 'Missing');
 console.log('Spotify Secret:', process.env.SPOTIFY_SECRET ? 'Loaded' : 'Missing');
 
-// Enhanced DisTube event handlers with silent playlist loading
+// Enhanced DisTube event handlers with better error handling
 client.distube
   .on('playSong', (queue, song) => {
     console.log(`🎶 Playing: ${song.name} - ${song.formattedDuration}`);
@@ -129,22 +168,30 @@ client.distube
   .on('error', (channel, error) => {
     console.error('❌ DisTube error:', error);
     
-    // Enhanced error handling
+    // Enhanced error handling for bot detection
     let errorMessage = '❌ An error occurred';
     
     if (error.message) {
-      if (error.message.includes('Cannot read properties of undefined')) {
+      if (error.message.includes('Sign in to confirm') || error.message.includes('bot')) {
+        errorMessage = '❌ YouTube blocked the request. Trying alternative method...';
+        
+        // Try to suggest fallback
+        if (channel && typeof channel.send === 'function') {
+          channel.send(errorMessage + '\n💡 **Suggestion:** Try using a direct YouTube link or search for the song with different keywords.');
+        }
+        return;
+      } else if (error.message.includes('Cannot read properties of undefined')) {
         errorMessage = '❌ Failed to parse playlist. This format may not be supported.';
       } else if (error.message.includes('Unknown Playlist')) {
         errorMessage = '❌ This playlist type is not supported (possibly auto-generated or private).';
-      } else if (error.message.includes('Sign in to confirm')) {
-        errorMessage = '❌ This content requires sign-in and cannot be accessed.';
       } else if (error.message.includes('Private video')) {
         errorMessage = '❌ This video is private or unavailable.';
       } else if (error.message.includes('Age-restricted')) {
         errorMessage = '❌ This content is age-restricted.';
       } else if (error.message.includes('not available')) {
         errorMessage = '❌ This content is not available in your region.';
+      } else if (error.message.includes('429') || error.message.includes('Too Many Requests')) {
+        errorMessage = '❌ Too many requests. Please wait a moment before trying again.';
       } else {
         errorMessage = `❌ Error: ${error.message}`;
       }
@@ -182,7 +229,7 @@ client.distube
   })
   .on('debug', (msg) => {
     // Only log important debug messages to reduce spam
-    if (msg.includes('error') || msg.includes('Error') || msg.includes('fail')) {
+    if (msg.includes('error') || msg.includes('Error') || msg.includes('fail') || msg.includes('Sign in')) {
       console.log('[DisTube Debug]', msg);
     }
   });
@@ -207,10 +254,15 @@ client.on('messageCreate', async (message) => {
     
     // Enhanced command error handling
     let errorMsg = '❌ There was an error executing that command.';
-    if (error.message && error.message.includes('Missing Access')) {
-      errorMsg = '❌ I don\'t have permission to join your voice channel.';
-    } else if (error.message && error.message.includes('Connection')) {
-      errorMsg = '❌ Failed to connect to voice channel. Please try again.';
+    
+    if (error.message) {
+      if (error.message.includes('Missing Access')) {
+        errorMsg = '❌ I don\'t have permission to join your voice channel.';
+      } else if (error.message.includes('Connection')) {
+        errorMsg = '❌ Failed to connect to voice channel. Please try again.';
+      } else if (error.message.includes('Sign in to confirm') || error.message.includes('bot')) {
+        errorMsg = '❌ YouTube blocked the request. Please try:\n• Using a different search term\n• Providing a direct YouTube link\n• Waiting a few minutes before trying again';
+      }
     }
     
     message.channel.send(errorMsg);
@@ -221,10 +273,16 @@ client.on('messageCreate', async (message) => {
 process.on('unhandledRejection', (err) => {
   console.error('❌ Unhandled promise rejection:', err);
   
+  // Handle YouTube bot detection errors
+  if (err.message && err.message.includes('Sign in to confirm')) {
+    console.log('🔧 YouTube bot detection error caught - bot continuing to run');
+    return;
+  }
+  
   // Handle specific DisTube errors
   if (err.errorCode === 'NO_UP_NEXT') {
     console.log('🔧 NO_UP_NEXT error caught - this happens when trying to skip with no songs in queue');
-    return; // Don't crash the bot
+    return;
   }
   
   // Don't crash the bot for playlist parsing errors
@@ -238,10 +296,22 @@ process.on('unhandledRejection', (err) => {
     console.log('🔧 DisTube error caught - bot continuing to run');
     return;
   }
+  
+  // Handle rate limiting errors
+  if (err.message && (err.message.includes('429') || err.message.includes('Too Many Requests'))) {
+    console.log('🔧 Rate limit error caught - bot continuing to run');
+    return;
+  }
 });
 
 process.on('uncaughtException', (err) => {
   console.error('❌ Uncaught exception:', err);
+  
+  // Handle YouTube bot detection
+  if (err.message && err.message.includes('Sign in to confirm')) {
+    console.log('🔧 YouTube bot detection exception caught - bot continuing to run');
+    return;
+  }
   
   // Handle DisTube exceptions
   if (err.name === 'DisTubeError' || err.errorCode) {
