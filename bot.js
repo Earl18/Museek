@@ -1,3 +1,20 @@
+// Add this to the top of your bot.js file
+const DEBUG_MODE = process.env.DEBUG_MODE === 'true' || false;
+
+// Create a debug function
+function debugLog(...args) {
+  if (DEBUG_MODE) {
+    console.log('[DEBUG]', ...args);
+  }
+}
+
+// Use it instead of console.log for debug information
+debugLog('Guild info:', message.guild.name, message.guild.id);
+debugLog('Queue state:', queue.playing, queue.paused);
+
+// Keep important logs always visible
+console.log('🎶 Playing:', song.name); // Always show
+console.log('❌ Error:', error.message); // Always show errors
 require('dotenv').config();
 const { Client, GatewayIntentBits, Collection } = require('discord.js');
 const { DisTube } = require('distube');
