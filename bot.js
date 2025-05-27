@@ -29,7 +29,7 @@ client.playlistHandler = new PlaylistHandler(client);
 // Load all commands from folders
 const commandFolders = fs.readdirSync('./commands');
 for (const folder of commandFolders) {
-  const commandFiles = fs.readdirSync(`./commands/${folder}`).filter(file => file.endsWith('.js')); // Fixed: Added missing closing parenthesis
+  const commandFiles = fs.readdirSync(`./commands/${folder}`).filter(file => file.endsWith('.js'));
   for (const file of commandFiles) {
     const command = require(`./commands/${folder}/${file}`);
     client.commands.set(command.name, command);
@@ -46,7 +46,7 @@ fs.readdirSync('./events').forEach(file => {
   }
 });
 
-// DisTube v5 configuration with anti-bot detection
+// DisTube v5 configuration with enhanced YouTube parsing bypass
 client.distube = new DisTube(client, {
   emitNewSongOnly: true,
   emitAddSongWhenCreatingQueue: true,
@@ -59,42 +59,19 @@ client.distube = new DisTube(client, {
         clientSecret: process.env.SPOTIFY_SECRET,
       },
     }),
-    new YouTubePlugin({
-      // Enhanced configuration for bot detection bypass
-      ytdlOptions: {
-        quality: 'highestaudio',
-        filter: 'audioonly',
-        format: 'mp4',
-        highWaterMark: 1024 * 1024 * 32, // 32MB buffer
-        requestOptions: {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.9',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'DNT': '1',
-            'Connection': 'keep-alive',
-            'Upgrade-Insecure-Requests': '1',
-            'Sec-Fetch-Dest': 'document',
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'none',
-            'Sec-Fetch-User': '?1',
-            'sec-ch-ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
-            'sec-ch-ua-mobile': '?0',
-            'sec-ch-ua-platform': '"Windows"'
-          }
-        }
-      }
-    }),
+    // Prioritize YT-DLP over YouTube plugin for better reliability
     new YtDlpPlugin({
-      // Enhanced YT-DLP configuration for bot detection bypass
+      // Enhanced YT-DLP configuration for bypassing YouTube parsing issues
       ytdlOptions: {
-        format: 'bestaudio[ext=webm]/bestaudio/best',
+        format: 'bestaudio[ext=webm+acodec=opus]/bestaudio[ext=m4a]/bestaudio/best',
         'extract-flat': false,
         'no-warnings': true,
         'no-check-certificate': true,
         'prefer-free-formats': true,
-        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'ignore-errors': true,
+        'no-abort-on-error': true,
+        // Enhanced headers to bypass bot detection
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
         'referer': 'https://www.youtube.com/',
         'add-header': [
           'Accept:text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
@@ -106,15 +83,74 @@ client.distube = new DisTube(client, {
           'Sec-Fetch-Dest:document',
           'Sec-Fetch-Mode:navigate',
           'Sec-Fetch-Site:none',
-          'Sec-Fetch-User:?1'
+          'Sec-Fetch-User:?1',
+          'sec-ch-ua:"Chromium";v="122", "Not(A:Brand";v="24", "Google Chrome";v="122"',
+          'sec-ch-ua-mobile:?0',
+          'sec-ch-ua-platform:"Windows"'
         ],
-        // Additional options to avoid detection
+        // Rate limiting to avoid detection
         'sleep-requests': 1,
-        'max-sleep-interval': 5,
-        'sleep-subtitles': 1
+        'max-sleep-interval': 3,
+        'sleep-subtitles': 1,
+        // Alternative extraction methods
+        'extractor-retries': 3,
+        'fragment-retries': 3,
+        'retry-sleep-functions': 'exp',
+        'retry-sleep': 'linear:1::5',
+        // Force IPv4 to avoid some regional blocks
+        'force-ipv4': true,
+        // Use alternative extraction methods
+        'youtube-skip-dash-manifest': true,
+        'youtube-skip-hls-manifest': false,
+        // Geo-bypass options
+        'geo-bypass': true,
+        'geo-bypass-country': 'US'
+      }
+    }),
+    new YouTubePlugin({
+      // Enhanced configuration with fallback options
+      ytdlOptions: {
+        quality: 'highestaudio',
+        filter: 'audioonly',
+        format: 'mp4',
+        highWaterMark: 1024 * 1024 * 64, // Increased buffer to 64MB
+        requestOptions: {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'DNT': '1',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'none',
+            'Sec-Fetch-User': '?1',
+            'sec-ch-ua': '"Chromium";v="122", "Not(A:Brand";v="24", "Google Chrome";v="122"',
+            'sec-ch-ua-mobile': '?0',
+            'sec-ch-ua-platform': '"Windows"',
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          }
+        },
+        // Additional bypass options
+        begin: undefined,
+        liveBuffer: 20000,
+        requestOptions: {
+          timeout: 30000,
+          maxRedirects: 5
+        }
       }
     }),
   ],
+  // Additional DisTube options for better error handling
+  searchSongs: 10,
+  searchCooldown: 30,
+  leaveOnEmpty: true,
+  leaveOnFinish: false,
+  leaveOnStop: true,
+  nsfw: false,
 });
 
 console.log('Spotify ID:', process.env.SPOTIFY_ID ? 'Loaded' : 'Missing');
@@ -176,11 +212,19 @@ client.distube
   .on('error', (channel, error) => {
     console.error('❌ DisTube error:', error);
     
-    // Enhanced error handling for bot detection and other issues
+    // Enhanced error handling for YouTube parsing and other issues
     let errorMessage = '❌ An error occurred';
     
     if (error.message) {
-      if (error.message.includes('Sign in to confirm') || error.message.includes('bot')) {
+      if (error.message.includes('Error when parsing watch.html') || error.message.includes('YouTube made a change')) {
+        errorMessage = '❌ **YouTube Parsing Error**\n\n' +
+                     '🔧 **This is usually temporary! Try:**\n' +
+                     '• Waiting 5-10 minutes and trying again\n' +
+                     '• Using a different search term\n' +
+                     '• Trying a direct YouTube link\n' +
+                     '• Using the song title + artist name\n\n' +
+                     '💡 YouTube frequently updates their system, causing temporary issues.';
+      } else if (error.message.includes('Sign in to confirm') || error.message.includes('bot')) {
         errorMessage = '❌ **YouTube Bot Detection**\n\n' +
                      '🔧 **Possible Solutions:**\n' +
                      '• Wait 10-15 minutes and try again\n' +
@@ -188,11 +232,6 @@ client.distube
                      '• Try a different song\n' +
                      '• Use a direct YouTube link\n\n' +
                      '💡 This is temporary and usually resolves itself.';
-        
-        if (channel && typeof channel.send === 'function') {
-          channel.send(errorMessage);
-        }
-        return;
       } else if (error.message.includes('Cannot read properties of undefined')) {
         errorMessage = '❌ Failed to parse content. This format may not be supported.';
       } else if (error.message.includes('Unknown Playlist')) {
@@ -209,8 +248,15 @@ client.distube
         errorMessage = '❌ This video is unavailable or has been removed.';
       } else if (error.message.includes('Premieres in')) {
         errorMessage = '❌ This video is a premiere that hasn\'t started yet.';
+      } else if (error.message.includes('PlayingError')) {
+        errorMessage = '❌ **Playback Error**\n\n' +
+                     '🔧 **Try:**\n' +
+                     '• A different search term\n' +
+                     '• Waiting a few minutes\n' +
+                     '• Using a direct link\n' +
+                     '• Searching for the artist name only';
       } else {
-        errorMessage = `❌ Playback Error: ${error.message.substring(0, 100)}${error.message.length > 100 ? '...' : ''}`;
+        errorMessage = `❌ **Playback Error:** ${error.message.substring(0, 100)}${error.message.length > 100 ? '...' : ''}`;
       }
     }
     
@@ -246,7 +292,7 @@ client.distube
   })
   .on('debug', (msg) => {
     // Only log important debug messages to reduce spam
-    if (msg.includes('error') || msg.includes('Error') || msg.includes('fail') || msg.includes('Sign in')) {
+    if (msg.includes('error') || msg.includes('Error') || msg.includes('fail') || msg.includes('Sign in') || msg.includes('parsing')) {
       console.log('[DisTube Debug]', msg);
     }
   });
@@ -286,6 +332,12 @@ client.on('messageCreate', async (message) => {
                   '• Try searching for the artist name only';
       } else if (error.message.includes('No voice connection')) {
         errorMsg = '❌ I\'m not connected to a voice channel.';
+      } else if (error.message.includes('Error when parsing watch.html')) {
+        errorMsg = '❌ **YouTube Parsing Issue**\n\n' +
+                  '🔧 **This is temporary! Try:**\n' +
+                  '• Waiting a few minutes\n' +
+                  '• Using a different search term\n' +
+                  '• Trying again with the same query';
       }
     }
     
@@ -296,6 +348,12 @@ client.on('messageCreate', async (message) => {
 // Enhanced error handling for unhandled promises
 process.on('unhandledRejection', (err) => {
   console.error('❌ Unhandled promise rejection:', err);
+  
+  // Handle YouTube parsing errors
+  if (err.message && (err.message.includes('Error when parsing watch.html') || err.message.includes('YouTube made a change'))) {
+    console.log('🔧 YouTube parsing error caught - bot continuing to run');
+    return;
+  }
   
   // Handle YouTube bot detection errors
   if (err.message && err.message.includes('Sign in to confirm')) {
@@ -321,6 +379,12 @@ process.on('unhandledRejection', (err) => {
     return;
   }
   
+  // Handle PlayingError specifically
+  if (err.name === 'PlayingError' || err.message.includes('PlayingError')) {
+    console.log('🔧 PlayingError caught - bot continuing to run');
+    return;
+  }
+  
   // Handle rate limiting errors
   if (err.message && (err.message.includes('429') || err.message.includes('Too Many Requests'))) {
     console.log('🔧 Rate limit error caught - bot continuing to run');
@@ -337,6 +401,12 @@ process.on('unhandledRejection', (err) => {
 process.on('uncaughtException', (err) => {
   console.error('❌ Uncaught exception:', err);
   
+  // Handle YouTube parsing errors
+  if (err.message && (err.message.includes('Error when parsing watch.html') || err.message.includes('YouTube made a change'))) {
+    console.log('🔧 YouTube parsing exception caught - bot continuing to run');
+    return;
+  }
+  
   // Handle YouTube bot detection
   if (err.message && err.message.includes('Sign in to confirm')) {
     console.log('🔧 YouTube bot detection exception caught - bot continuing to run');
@@ -346,6 +416,12 @@ process.on('uncaughtException', (err) => {
   // Handle DisTube exceptions
   if (err.name === 'DisTubeError' || err.errorCode) {
     console.log('🔧 DisTube exception caught - bot continuing to run');
+    return;
+  }
+  
+  // Handle PlayingError exceptions
+  if (err.name === 'PlayingError') {
+    console.log('🔧 PlayingError exception caught - bot continuing to run');
     return;
   }
   
