@@ -53,25 +53,6 @@ client.distube = new DisTube(client, {
   emitAddSongWhenCreatingQueue: true,
   savePreviousSongs: true,
   emitAddListWhenCreatingQueue: true,
-  ytdlOptions: {
-    // Add these options to bypass bot detection
-    requestOptions: {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.5',
-        'Accept-Encoding': 'gzip, deflate',
-        'DNT': '1',
-        'Connection': 'keep-alive',
-        'Upgrade-Insecure-Requests': '1',
-      }
-    },
-    // Additional options to avoid detection
-    quality: 'highestaudio',
-    filter: 'audioonly',
-    format: 'mp4',
-    highWaterMark: 1024 * 1024 * 10, // 10MB buffer
-  },
   plugins: [
     new SpotifyPlugin({
       api: {
@@ -82,15 +63,23 @@ client.distube = new DisTube(client, {
     new YouTubePlugin({
       cookies: [], // Add cookies if needed for region-locked content
       ytdlOptions: {
+        quality: 'highestaudio',
+        filter: 'audioonly',
+        format: 'mp4',
+        highWaterMark: 1024 * 1024 * 10, // 10MB buffer
         requestOptions: {
           headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
             'Accept-Language': 'en-US,en;q=0.5',
             'Accept-Encoding': 'gzip, deflate',
             'DNT': '1',
             'Connection': 'keep-alive',
             'Upgrade-Insecure-Requests': '1',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'none',
+            'Sec-Fetch-User': '?1',
           }
         }
       }
@@ -99,12 +88,19 @@ client.distube = new DisTube(client, {
       exec: ytdlExec,
       update: false,
       // YT-DLP options to bypass restrictions
-      options: {
+      ytdlOptions: {
         format: 'bestaudio/best',
         'extract-flat': false,
         'no-warnings': true,
-        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
         'referer': 'https://www.youtube.com/',
+        'add-header': [
+          'Accept:text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Accept-Language:en-US,en;q=0.5',
+          'Accept-Encoding:gzip, deflate',
+          'DNT:1',
+          'Connection:keep-alive'
+        ]
       }
     }),
   ],
