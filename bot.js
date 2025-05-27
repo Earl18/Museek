@@ -61,6 +61,40 @@ client.distube = new DisTube(client, {
       },
     }),
     // Prioritize YT-DLP over YouTube plugin for better reliability
+    new YouTubePlugin({
+      // Enhanced configuration with fallback options
+      ytdlOptions: {
+        quality: 'highestaudio',
+        filter: 'audioonly',
+        format: 'mp4',
+        highWaterMark: 1024 * 1024 * 64, // Increased buffer to 64MB
+        requestOptions: {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'DNT': '1',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'none',
+            'Sec-Fetch-User': '?1',
+            'sec-ch-ua': '"Chromium";v="122", "Not(A:Brand";v="24", "Google Chrome";v="122"',
+            'sec-ch-ua-mobile': '?0',
+            'sec-ch-ua-platform': '"Windows"',
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          },
+          timeout: 30000,
+          maxRedirects: 5
+        },
+        // Additional bypass options
+        begin: undefined,
+        liveBuffer: 20000
+      }
+    }),
     new YtDlpPlugin({
       // Enhanced YT-DLP configuration for bypassing YouTube parsing issues
       ytdlOptions: {
@@ -106,40 +140,6 @@ client.distube = new DisTube(client, {
         // Geo-bypass options
         'geo-bypass': true,
         'geo-bypass-country': 'US'
-      }
-    }),
-    new YouTubePlugin({
-      // Enhanced configuration with fallback options
-      ytdlOptions: {
-        quality: 'highestaudio',
-        filter: 'audioonly',
-        format: 'mp4',
-        highWaterMark: 1024 * 1024 * 64, // Increased buffer to 64MB
-        requestOptions: {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.9',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'DNT': '1',
-            'Connection': 'keep-alive',
-            'Upgrade-Insecure-Requests': '1',
-            'Sec-Fetch-Dest': 'document',
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'none',
-            'Sec-Fetch-User': '?1',
-            'sec-ch-ua': '"Chromium";v="122", "Not(A:Brand";v="24", "Google Chrome";v="122"',
-            'sec-ch-ua-mobile': '?0',
-            'sec-ch-ua-platform': '"Windows"',
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache'
-          },
-          timeout: 30000,
-          maxRedirects: 5
-        },
-        // Additional bypass options
-        begin: undefined,
-        liveBuffer: 20000
       }
     }),
   ],
