@@ -46,12 +46,13 @@ fs.readdirSync('./events').forEach(file => {
   }
 });
 
-// DisTube v5 configuration with enhanced YouTube parsing bypass
+// DisTube v5 configuration with corrected options
 client.distube = new DisTube(client, {
   emitNewSongOnly: true,
   emitAddSongWhenCreatingQueue: true,
   savePreviousSongs: true,
   emitAddListWhenCreatingQueue: true,
+  nsfw: false,
   plugins: [
     new SpotifyPlugin({
       api: {
@@ -132,25 +133,16 @@ client.distube = new DisTube(client, {
             'sec-ch-ua-platform': '"Windows"',
             'Cache-Control': 'no-cache',
             'Pragma': 'no-cache'
-          }
+          },
+          timeout: 30000,
+          maxRedirects: 5
         },
         // Additional bypass options
         begin: undefined,
-        liveBuffer: 20000,
-        requestOptions: {
-          timeout: 30000,
-          maxRedirects: 5
-        }
+        liveBuffer: 20000
       }
     }),
   ],
-  // Additional DisTube options for better error handling
-  searchSongs: 10,
-  searchCooldown: 30,
-  leaveOnEmpty: true,
-  leaveOnFinish: false,
-  leaveOnStop: true,
-  nsfw: false,
 });
 
 console.log('Spotify ID:', process.env.SPOTIFY_ID ? 'Loaded' : 'Missing');
