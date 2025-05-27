@@ -1,16 +1,14 @@
-# Use an official Node image
+# Use official Node alpine image
 FROM node:20-alpine
 
-RUN apt-get update && apt-get install -y ffmpeg
+# Install ffmpeg and build tools
+RUN apk add --no-cache ffmpeg python3 make g++
 
 # Set working directory
 WORKDIR /app
 
 # Copy files
 COPY . .
-
-# Install build tools for native dependencies
-RUN apk add --no-cache python3 make g++
 
 # Install dependencies
 RUN npm install
