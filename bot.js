@@ -7,6 +7,24 @@ const { YouTubePlugin } = require('@distube/youtube');
 const fs = require('fs-extra');
 const path = require('path');
 
+const { exec } = require('child_process');
+
+exec('which ffmpeg', (err, stdout) => {
+  if (err) console.error('ffmpeg not found:', err);
+  else console.log('ffmpeg found at:', stdout.trim());
+});
+
+exec('which yt-dlp', (err, stdout) => {
+  if (err) console.error('yt-dlp not found:', err);
+  else console.log('yt-dlp found at:', stdout.trim());
+});
+
+exec('yt-dlp --version', (err, stdout) => {
+  if (err) console.error('yt-dlp version error:', err);
+  else console.log('yt-dlp version:', stdout.trim());
+});
+
+
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
@@ -37,7 +55,8 @@ client.distube = new DisTube(client, {
         new YtDlpPlugin({
             update: true,
             quality: 'highestaudio',
-            highWaterMark: 1 << 25 // Higher buffer to reduce lag
+            highWaterMark: 1 << 25, // Higher buffer to reduce lag
+            executable: 'yt-dlp'
         })
     ],
 });
