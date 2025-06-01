@@ -6,10 +6,12 @@ WORKDIR /app
 
 # Install system dependencies: Python (for yt-dlp-exec) and build tools (for native modules)
 RUN apt-get update && \
-    apt-get install -y python3 build-essential ffmpeg && \
+    apt-get install -y python3-pip build-essential ffmpeg && \
+    pip3 install yt-dlp && \
     ln -s /usr/bin/python3 /usr/bin/python && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
+
 
 # Copy package.json and lockfile separately for better caching
 COPY package*.json ./
