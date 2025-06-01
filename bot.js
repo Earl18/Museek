@@ -1,5 +1,6 @@
 require('dotenv').config();
 const { Client, GatewayIntentBits, Partials, Collection } = require('discord.js');
+const { executablePath } = require('yt-dlp-exec');
 const { DisTube } = require('distube');
 const { SpotifyPlugin } = require('@distube/spotify');
 const { YtDlpPlugin } = require('@distube/yt-dlp');
@@ -53,10 +54,10 @@ client.distube = new DisTube(client, {
         new YouTubePlugin(),
         new SpotifyPlugin(),
         new YtDlpPlugin({
+            executable: executablePath,
             update: true,
             quality: 'highestaudio',
-            highWaterMark: 1 << 25, // Higher buffer to reduce lag
-            executable: 'yt-dlp'
+            highWaterMark: 1 << 25 // Higher buffer to reduce lag
         })
     ],
 });
